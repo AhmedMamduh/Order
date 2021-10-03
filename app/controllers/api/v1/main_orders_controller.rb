@@ -8,7 +8,13 @@ module Api::V1
     end
 
     def create
-      order = @current_user.main_orders.new(orders_params)
+      order = @current_user.main_orders.new
+      total_price = 0
+      params[:products].each do |product|
+        order.order_details.new(product_id: product[:id], quantity: product[:quantity])
+        total_price += Product.find_by(id: product[:id]).price.to_f * product[:quantity]
+      end
+      order.total_price = total_price
       if order.save
         render json: order, status: 201
       else 
@@ -28,10 +34,6 @@ module Api::V1
     end
 
     private
-    def orders_params
-      params.permit(:total_price)
-    end
-
     def set_order
       @order = MainOrder.find(params[:id])
       render json: { msg: "Order not found" }, status: 404 and return unless @order
